@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: product-listing-backend
+    env: node
+    region: oregon
+    branch: main
+    plan: starter
+    buildCommand: "npm ci && npm run build"
+    startCommand: "npm start"
+    healthCheckPath: /
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: PORT
+        sync: false
+    autoDeploy: true
+    repo: # leave blank; Render will connect to GitHub repo when creating service
+      name: ""
+      owner: ""
+

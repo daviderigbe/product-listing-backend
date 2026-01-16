@@ -24,13 +24,13 @@ router.post('/', auth_1.requireAuth, async (req, res, next) => {
         for (let i = 0; i < items.length; i++) {
             const it = items[i];
             if (!it || !it.product) {
-                return res.status(400).json({ message: `Item at index ${i} missing 'product' field` });
+                return res.status(400).json({ message: `Item missing 'product' field` });
             }
             if (typeof it.product !== 'string' || !mongoose_1.default.Types.ObjectId.isValid(it.product)) {
-                return res.status(400).json({ message: `Item at index ${i} has invalid product id: ${it.product}` });
+                return res.status(400).json({ message: `Item has invalid product id: ${it.product}` });
             }
             if (it.quantity !== undefined && !isPositiveInteger(it.quantity)) {
-                return res.status(400).json({ message: `Item at index ${i} has invalid quantity: ${it.quantity}` });
+                return res.status(400).json({ message: `Item has invalid quantity: ${it.quantity}` });
             }
         }
         // populate price and validate product existence
