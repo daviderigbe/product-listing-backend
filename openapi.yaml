@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
   title: Product Listing API
-  version: 1.0.0
-  description: API documentation for the Product Listing backend (Auth, Products, Orders)
+  version: 1.0.2
+  description: API documentation for the Product Listing backend (Auth, Products, Orders, Cart)
 servers:
   - url: http://localhost:4000
 paths:
@@ -87,12 +87,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                price:
-                  type: number
+              $ref: '#/components/schemas/ProductCreate'
       responses:
         '201':
           description: Created
@@ -140,9 +135,20 @@ paths:
       responses:
         '200':
           description: Deleted
-  /api/orders:
+  /api/cart:
+    get:
+      summary: Get current user's cart
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cart retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
     post:
-      summary: Create order (checkout) - requires auth
+      summary: Add an item to cart or increment quantity
       security:
         - bearerAuth: []
       requestBody:
@@ -150,31 +156,120 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                items:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      product:
-                        type: string
-                      quantity:
-                        type: integer
+              $ref: '#/components/schemas/CartItemInput'
       responses:
-        '201':
-          description: Created
-    get:
-      summary: List orders for authenticated user
+        '200':
+          description: Updated cart
+    put:
+      summary: Update an item quantity in cart
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemInput'
+      responses:
+        '200':
+          description: Updated cart
+  /api/cart/{productId}:
+    delete:
+      summary: Remove a product from cart
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated cart
+  /api/cart/checkout:
+    post:
+      summary: Create an order from the user's cart (checkout)
       security:
         - bearerAuth: []
       responses:
-        '200':
-          description: OK
+        '201':
+          description: Order created
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-
+  schemas:
+    ProductCreate:
+      type: object
+      required: [name, price]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        category:
+          type: string
+        imageUrl:
+          type: string
+    OrderCreate:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              product:
+                type: string
+              quantity:
+                type: integer
+    OrderItem:
+      type: object
+      properties:
+        product:
+          $ref: '#/components/schemas/ProductCreate'
+        quantity:
+          type: integer
+        price:
+          type: number
+    OrderResponse:
+      type: object
+      properties:
+        _id:
+          type: string
+        user:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        total:
+          type: number
+    CartItemInput:
+      type: object
+      required: [product]
+      properties:
+        product:
+          type: string
+        quantity:
+          type: integer
+    CartItem:
+      type: object
+      properties:
+        product:
+          type: object
+          description: Populated product object
+        quantity:
+          type: integer
+    CartResponse:
+      type: object
+      properties:
+        cart:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'

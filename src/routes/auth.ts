@@ -17,8 +17,11 @@ function validatePassword(password: any) {
   if (typeof password !== 'string') return 'password must be a string';
   if (password.length < 8) return 'password must be at least 8 characters';
   if (password.length > 128) return 'password must be at most 128 characters';
-  // at least one letter and one number
-  if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) return 'password must include at least one letter and one number';
+  // require at least one uppercase, one lowercase, one number, and one special character
+  if (!/[A-Z]/.test(password)) return 'password must include at least one uppercase letter';
+  if (!/[a-z]/.test(password)) return 'password must include at least one lowercase letter';
+  if (!/[0-9]/.test(password)) return 'password must include at least one number';
+  if (!/[^A-Za-z0-9]/.test(password)) return 'password must include at least one special character';
   return null;
 }
 

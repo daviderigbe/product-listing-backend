@@ -8,6 +8,7 @@ const cors_1 = __importDefault(require("cors"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const products_1 = __importDefault(require("./routes/products"));
 const orders_1 = __importDefault(require("./routes/orders"));
+const cart_1 = __importDefault(require("./routes/cart"));
 const docs_1 = __importDefault(require("./routes/docs"));
 const error_1 = require("./middleware/error");
 const app = (0, express_1.default)();
@@ -16,6 +17,7 @@ app.use(express_1.default.json());
 app.use('/api/auth', auth_1.default);
 app.use('/api/products', products_1.default);
 app.use('/api/orders', orders_1.default);
+app.use('/api/cart', cart_1.default);
 app.use('/api/docs', docs_1.default);
 app.get('/', (req, res) => res.json({ ok: true, message: 'Product Listing API' }));
 // centralized error handler
