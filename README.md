@@ -1,17 +1,33 @@
 # Product Listing Backend
 
-This repository contains the backend for the Product Listing Web App (Express + TypeScript + MongoDB).
+Backend for the Product Listing Web App — Express + TypeScript + MongoDB (Mongoose).
 
-Features implemented:
-- User authentication (register/login) with JWT
-- Product CRUD (create, read, update, delete)
-- Product listing with search, category filter, price range, pagination
-- Orders collection and simple order creation (cart persistence per user)
-- Seed script to create initial user and products
+This README documents what is implemented, how to run locally, how to deploy (Render), and quick API test commands (including Swagger).
 
-Quick start
+---
 
-1. Copy `.env.example` to `.env` and set values (MONGODB_URI, JWT_SECRET, PORT)
+## Summary
+
+Implemented backend features:
+- User authentication with JWT (register & login).
+- Product listing and CRUD (search, category filter, price range, pagination).
+- Persistent per-user cart (add / update / remove items) and checkout that creates orders.
+- Order item management (remove or decrement items inside an order).
+- OpenAPI/Swagger UI available at `/api/docs`.
+- Deployment-ready: `render.yaml` + Dockerfile and CI artifacts included.
+
+Notes on order flow: orders are created via cart checkout (`POST /api/cart/checkout`). The separate create/list/delete order endpoints were intentionally removed to avoid duplication with the cart flow. The API keeps an item-level order modification route so users can remove or decrement items in an existing order.
+
+---
+
+## Quick start (local)
+
+1. Copy `.env.example` to `.env` and set values (do NOT commit `.env`):
+
+```bash
+cp .env.example .env
+# Edit .env -> set MONGODB_URI (mongodb://localhost:27017/product-listing for local), JWT_SECRET, PORT (optional)
+```
 
 2. Install dependencies:
 
@@ -19,126 +35,145 @@ Quick start
 npm install
 ```
 
-3. Run seed to create example data (optional):
+3. (Optional) Seed the DB with an admin user and sample products:
 
 ```bash
 npm run seed
 ```
 
-4. Start in development:
+4. Run in development (with hot reload):
 
 ```bash
 npm run dev
 ```
 
-Or build and run:
+Or build and run the production build:
 
 ```bash
 npm run build
 npm start
 ```
 
-API Endpoints
+The server defaults to `http://localhost:4000` unless `PORT` is set.
 
-- POST /api/auth/register - register (username, password)
-- POST /api/auth/login - login (username, password) -> { token }
-- GET /api/products - list products with filters
-- GET /api/products/:id - product detail
-- POST /api/products - create product (requires Authorization: Bearer <token>)
-- PUT /api/products/:id - update product (requires auth)
-- DELETE /api/products/:id - delete product (requires auth)
-- POST /api/orders - create order for authenticated user
-- GET /api/orders - list orders for authenticated user
+---
 
-Deployment
+## Seeded credentials (for quick testing)
 
-- For Heroku: set config vars (MONGODB_URI, JWT_SECRET, PORT). Push the repo, Heroku will run `npm start`.
-- For Docker: build and run the provided Dockerfile.
+- username: `admin`
+- password: `password`
 
-## Quick Deploy (Heroku) — recommended for interview testing
+(Seed creates example products and an `admin` user.)
 
-This repository includes a GitHub Actions workflow that will build and deploy to Heroku whenever you push to `main`.
+---
 
-Manual Heroku deploy (fast):
+## API (high level)
 
-1. Create a Heroku app:
+Authentication
+- POST `/api/auth/register` - register (username, password)
+- POST `/api/auth/login` - login (username, password) → { token }
 
-```bash
-heroku create <app-name>
-```
+Products
+- GET `/api/products` - list products (supports `q`, `category`, `minPrice`, `maxPrice`, `page`, `limit`)
+- GET `/api/products/:id` - product detail
+- POST `/api/products` - create product (requires Authorization: Bearer <token>)
+- PUT `/api/products/:id` - update product (requires auth)
+- DELETE `/api/products/:id` - delete product (requires auth)
 
-2. Set required config vars on Heroku (replace values):
+Cart (persistent on User)
+- GET `/api/cart` - get current user's cart (populated product objects)
+- POST `/api/cart` - add/increment item in cart (body: { product, quantity })
+- PUT `/api/cart` - update item quantity in cart (body: { product, quantity })
+- DELETE `/api/cart/:productId` - remove a product from cart
+- POST `/api/cart/checkout` - create an order from the cart and clear the cart
 
-```bash
-heroku config:set MONGODB_URI="<your_mongo_uri>" JWT_SECRET="<long-random-secret>" --app <app-name>
-```
+Order item management
+- DELETE `/api/orders/:orderId/items/:productId` - remove or decrement items inside an order (owner only). Optional query/body `quantity` to decrement; omit to remove the item entirely.
 
-3. Push your repository to Heroku (if using git):
+API docs (Swagger)
+- Interactive docs available at: `GET /api/docs`
 
-```bash
-git push heroku main
-```
+---
 
-CI deploy using GitHub Actions (recommended):
+## Quick test commands (replace placeholders)
 
-1. In your GitHub repository settings, add repository secrets:
-   - `HEROKU_API_KEY` — your Heroku API key (from Account Settings -> API Key).
-   - `HEROKU_APP_NAME` — the app name you created on Heroku.
-   - `HEROKU_EMAIL` — your Heroku account email.
+Replace `<URL>` with your server base (e.g. `http://localhost:4000` or your Render URL), `<TOKEN>` with the JWT returned by login, and `<PRODUCT_ID>` / `<ORDER_ID>` with the real ids.
 
-2. Push to `main`. The CI will run `npm ci`, `npm run build`, and deploy to Heroku automatically.
-
-Notes:
-- Ensure `MONGODB_URI` points to a reachable MongoDB (Atlas is recommended). For Heroku, set it in the app config as shown above.
-- Keep your `JWT_SECRET` secret. Use a long random value (48+ bytes hex) and store it in Heroku config vars.
-
-## Deploying to Render (detailed)
-
-This section explains how to deploy the backend to Render (https://render.com). Render is fast for demo/interview apps and provides a simple UI to configure environment variables and auto-deploy from GitHub.
-
-Prerequisites
-- Push your project to a GitHub repository (branch `main`).
-- Have your MongoDB Atlas URI ready.
-- Generate a secure JWT secret (example below).
-
-1) Generate a secure JWT secret (optional locally):
+Register (example):
 
 ```bash
-# generate a 48-byte hex secret
-node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+curl -i -X POST "<URL>/api/auth/register" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"alice","password":"P@ssword1!"}'
 ```
 
-2) Commit `render.yaml` or link the repo when creating a Render service. If you commit `render.yaml` Render will read it and prefill the settings; you still need to add secrets in the Render dashboard.
-
-3) On Render dashboard:
-- Click "New" → "Web Service" → "Connect a repository" → choose the GitHub repository and branch `main`.
-- If using `render.yaml`, Render will pick those settings. Otherwise fill in:
-  - Environment: Node
-  - Build Command: `npm ci && npm run build`
-  - Start Command: `npm start`
-  - Health check path: `/`
-- After creating service, go to the Service → Environment tab and add the following environment variables:
-  - `MONGODB_URI` = your MongoDB connection string (Atlas recommended)
-  - `JWT_SECRET` = generated secret
-  - (Optional) `PORT` = 4000 (Render will set $PORT automatically; leaving this empty is OK)
-
-4) Deploy and verify
-- Trigger a deploy by pushing a change to `main`, or use the Deploy button in Render.
-- Once the service is live, open: `https://<your-service>.onrender.com/api/docs` to access Swagger UI and test endpoints.
-
-Seeding
-- To seed the production DB (if needed), run the seed script locally with `.env` pointing to your production `MONGODB_URI`:
+Login (get token):
 
 ```bash
-cp .env.example .env
-# edit .env and set MONGODB_URI to your Atlas URI and JWT_SECRET to the secret
-npm run seed
+curl -s -X POST "<URL>/api/auth/login" -H "Content-Type: application/json" -d '{"username":"admin","password":"password"}' | jq
 ```
 
-Notes
-- Keep secrets (MONGODB_URI and JWT_SECRET) in the Render dashboard; do not commit them to the repo.
-- For quick demos, Render's `starter` plan is sufficient. For production, use a managed MongoDB with backups and a private network when possible.
+List products (example):
 
-Notes
+```bash
+curl "<URL>/api/products?q=shirt&category=Clothing&minPrice=10&maxPrice=100&page=1&limit=10"
+```
 
-This backend is intentionally self-contained and easy to integrate with any frontend. JWT tokens are returned on login and should be sent in Authorization headers as "Bearer <token>".
+Add to cart:
+
+```bash
+curl -i -X POST "<URL>/api/cart" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"product":"<PRODUCT_ID>","quantity":2}'
+```
+
+View cart:
+
+```bash
+curl -i -X GET "<URL>/api/cart" -H "Authorization: Bearer <TOKEN>"
+```
+
+Checkout (create order from cart):
+
+```bash
+curl -i -X POST "<URL>/api/cart/checkout" -H "Authorization: Bearer <TOKEN>"
+```
+
+Remove N units from an order item:
+
+```bash
+curl -i -X DELETE "<URL>/api/orders/<ORDER_ID>/items/<PRODUCT_ID>?quantity=1" -H "Authorization: Bearer <TOKEN>"
+```
+
+Remove entire item from an order (no quantity):
+
+```bash
+curl -i -X DELETE "<URL>/api/orders/<ORDER_ID>/items/<PRODUCT_ID>" -H "Authorization: Bearer <TOKEN>"
+```
+
+Swagger UI for interactive testing:
+
+```
+<URL>/api/docs
+```
+
+---
+
+## Deployment (Render )
+
+This repo includes a `render.yaml` to help declarative setup. Quick UI steps:
+1. Push the repo to GitHub (branch `main`).
+2. In Render, create a new Web Service and connect the repo & `main` branch.
+3. Build command: `npm ci && npm run build`; Start command: `npm start`.
+4. Set environment variables in the Render service dashboard:
+   - `MONGODB_URI` (Atlas recommended)
+   - `JWT_SECRET` (strong random secret)
+5. Trigger a deploy (or push to `main` to auto-deploy).
+6. Visit `<your-render-url>/api/docs` to test.
+
+Security notes
+- Do not commit `.env` or secrets. If any credentials were accidentally pushed, rotate them immediately (Atlas DB users, JWT secret).
+- Store production secrets in Render's environment variable settings (not in source).
+
+---

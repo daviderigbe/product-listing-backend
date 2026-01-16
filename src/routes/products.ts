@@ -46,7 +46,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Create product - protected
+// Create product
 router.post('/', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { name, description, price, category, imageUrl } = (req as any).body;

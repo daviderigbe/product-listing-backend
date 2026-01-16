@@ -23,7 +23,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// POST /api/cart - add an item to cart { product, quantity }
+// POST /api/cart - add an item to cart
 router.post('/', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { product, quantity = 1 } = req.body as { product?: string; quantity?: number };
@@ -71,7 +71,6 @@ router.put('/', requireAuth, async (req: AuthRequest, res: Response) => {
     const item = (user.cart || []).find((c: any) => String(c.product) === String(product));
     if (!item) return res.status(404).json({ message: 'Product not found in cart' });
 
-    // assign quantity safely (quantity validated above)
     item.quantity = quantity as number;
     await user.save();
     const populated = await User.findById(req.userId).populate('cart.product');

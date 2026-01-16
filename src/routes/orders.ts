@@ -10,7 +10,7 @@ function isPositiveInteger(n: any) {
   return Number.isInteger(n) && n > 0;
 }
 
-// Create order (checkout) - requires auth
+// Create order
 router.post('/', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.userId;
